@@ -1,114 +1,61 @@
 //
 // Created by Kiril Valkov on 26.04.23.
 //
+
+
 #include <stdio.h>
 #include <stdlib.h>
-struct BMP {
-    char filetype[2]; // must be BM, must check if BM
-    unsigned int filesize;
-    short reserved1;
-    short reserved2;
-    unsigned int dataoffset;
+#include <math.h>
+#include "Input_file.h"
+#include "Output_file.h"
 
-};
-struct DIB {
-    unsigned int fileheader;
-    unsigned int headersize;
-    int width;
-    int height;
-    short planes;
-    short bitsperpixel; /* we only support the value 24 here */
-    unsigned int compression; /* we do not support compression */
-    unsigned int bitmapsize;
-    int horizontalres;
-    int verticalres;
-    unsigned int numcolors;
-    unsigned int importantcolors;
-};
 
-struct PIXEL {
-    unsigned char b;
-    unsigned char g;
-    unsigned char r;
+void flip_1bits1(struct BMP *bmp, struct DIB *dib, FILE *f);
 
-};
+void rotate_1bits1(struct BMP *bmp, struct DIB *dib, FILE *f);
+
 int main() {
     struct BMP bmp;
     struct DIB dib;
-    struct PIXEL pixel;
-    struct PIXEL pixel2;
+
 
     FILE *f;
     FILE *f1;
 
-    f = fopen("bmp_24.bmp", "rb+");
-    f1 = fopen("bmp_24_1.bmp", "wb+");
+    f = fopen("1.bmp", "rb+");
+    f1 = fopen("111.bmp", "wb+");
 
     if (f == NULL) {
         perror("Greshka s faila");
         exit(1);
     }
-    fread(&bmp.filetype,1 ,2,f);
-
-
-    if (bmp.filetype[0] != 'B' && bmp.filetype[1] != 'M') {
-        printf("Greshen format");
+    if (f1 == NULL) {
+        perror("Greshka s faila");
         exit(1);
     }
+    copy_file(f, f1);
 
+    fseek(f, 0, SEEK_SET);
+    fseek(f1, 0, SEEK_SET);
 
-    fread(&bmp.filesize, 4, 1, f);
-    printf("Value is %d\n", bmp.filesize);
+    input_bmp_Dib(f, &bmp, &dib);
+    // PIXEL_1 *pixels = malloc(dib.width * dib.height * sizeof(PIXEL_1));
 
-    fseek(f, 4, SEEK_CUR);
+    //  read_pixel_1bit(f,&bmp,&dib,pixels);
 
-    fread(&bmp.dataoffset, 4, 1, f);
-    printf("Offset is %d\n", bmp.dataoffset);
+    // invert_24bits(&bmp,&dib,pixels,f,f1);
 
+     flip_1bits1(&bmp,&dib,f);
 
- //   fwrite(&bmp, sizeof(bmp), 1, f1);
+    ///reshenie na rotate 24pix
 
+    //   rotate_24bits(&bmp, &dib, f);
 
-    fread(&dib.fileheader, 4, 1, f);
-    printf("File header is %d bytes\n", dib.fileheader);
+    ///revenie na flip 24pix;
 
-    if (dib.fileheader != 40) {
-        printf("Greshen format");
-        exit(-1);
-    }
-
-    fread(&dib.width, 4, 1, f);
-    printf("Width is %d\n", dib.width);
-
-    fread(&dib.height, 4, 1, f);
-    printf("Height is %d\n", dib.height);
-
-    fread(&dib.planes, 2, 1, f);
-    printf("Color planes is %d\n", dib.planes);
-
-
-    fread(&dib.bitsperpixel, 2, 1, f);
-    printf("Pixels per bit is %d\n", dib.bitsperpixel);
-
-    fread(&dib.compression, 4, 1, f);
-    printf("Compression scheme used is %d\n", dib.compression);
-
-    fread(&dib.bitmapsize, 4, 1, f);
-    printf("Image size is %d\n", dib.bitmapsize);
-
-    fread(&dib.horizontalres, 4, 1, f);
-    printf("Horizontal resolution is %d\n", dib.horizontalres);
-
-    fread(&dib.verticalres, 4, 1, f);
-    printf("Vertical resolution is %d\n", dib.verticalres);
-
-    fread(&dib.numcolors, 4, 1, f);
-    printf("Number of colors used %d\n", dib.numcolors);
-
-    fread(&dib.importantcolors, 4, 1, f);
-    printf("Important colors used %d\n", dib.importantcolors);
-  //  fwrite(&dib, sizeof(dib), 1, f1);
-    switch(dib.bitsperpixel) {
+    //   fllip_24bits(&bmp, &dib, f);
+    //  fwrite(&dib, sizeof(dib), 1, f1);
+    switch (dib.bitsperpixel) {
         case 1:
             break;
         case 2:
@@ -116,6 +63,7 @@ int main() {
         case 4:
             break;
         case 8:
+
             break;
         case 16:
             break;
@@ -123,228 +71,210 @@ int main() {
             break;
         default:
             printf("error");
-            return  1;
+            return 1;
     }
-//reshenie na invert
-/*
-    int x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < dib.height) {
-
-            fread(&pixel.b, 1, 1, f);
-            unsigned int blue = pixel.b;
-            blue = ~blue;
-            pixel.b = (char) blue;
-          //  printf("Pixel 1 is %d\n", pixel.b);
-
-            fread(&pixel.g, 1, 1, f);
-            unsigned int green = pixel.g;
-            green = ~green;
-            pixel.g = (char) green;
-           // printf("Pixel 2 is %d\n", pixel.g);
-
-            fread(&pixel.r, 1, 1, f);
-            unsigned int red = pixel.r;
-            red = ~red;
-            pixel.r = (char) red;
-         //   printf("Pixel 3 is %d\n", pixel.r);
-
-            fseek(f, -3, SEEK_CUR);
-            fwrite(&pixel.b, 1, 1, f);
-            fwrite(&pixel.g, 1, 1, f);
-            fwrite(&pixel.r, 1, 1, f);
-            fseek(f, 0, SEEK_CUR);
-
-            y++;
-        }
-          fseek(f,0,SEEK_CUR);
-
-        x++;
-    }*/
-    int pixelSize = dib.height * dib.width ;
-
-
-
-    char pixelArrayb[pixelSize];
-    char pixelArrayg[pixelSize];
-    char pixelArrayr[pixelSize];
-    char pixelArrayb2[pixelSize];
-    char pixelArrayg2[pixelSize];
-    char pixelArrayr2[pixelSize];
-    int lastIndex = pixelSize-1;
-    //reshenie na rotate;
-    for(int i = 0; i < pixelSize; i+=1)
-    {
-        // Blue
-        fread(&pixelArrayb[i], 1, 1, f);
-        // Green
-        fread(&pixelArrayg[(i)], 1, 1, f);
-        // Red
-        fread(&pixelArrayr[(i)], 1, 1, f);
-
-    }int x1=dib.width-1;
-    for (int i = 0; i < dib.width;i++) {
-        for (int y = 0; y < dib.height; y++) {
-            pixelArrayb2[y*dib.width+x1]=pixelArrayb[i*dib.width+y];
-            pixelArrayg2[y*dib.width+x1]=pixelArrayg[i*dib.width+y];
-            pixelArrayr2[y*dib.width+x1]=pixelArrayr[i*dib.width+y];
-        }x1--;
+    unsigned char c = 168;
+    for (int i = 7; i >= 0; i--) {
+        printf("%d ", (c >> i) & 1);
     }
-    fseek(f, bmp.dataoffset, SEEK_SET);
-
-    int x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < dib.height) {
-            fwrite(&pixelArrayb2[x * dib.width + y], 1, 1, f);
-            fwrite(&pixelArrayg2[x * dib.width + y], 1, 1, f);
-            fwrite(&pixelArrayr2[x * dib.width + y], 1, 1, f);
-            y++;
-            fseek(f, 0, SEEK_CUR);
-
-        }
-
-        fseek(f, 0, SEEK_CUR);
-        x++;
-    }
-//revenie na flip;
-
-/*
-    for(int i = 0; i < pixelSize; i+=1)
-    {
-        // Blue
-        fread(&pixelArrayb[i], 1, 1, f);
-        // Green
-        fread(&pixelArrayg[(i)], 1, 1, f);
-        // Red
-        fread(&pixelArrayr[(i)], 1, 1, f);
-
-    }for ( int x = 0; x < dib.width; x++) {
-        for (int y = 0; y < dib.height/2; y++) {
-            unsigned char b=pixelArrayb[x*dib.width+y];
-            unsigned char g=pixelArrayg[x*dib.width+y];
-            unsigned char r=pixelArrayr[x*dib.width+y];
-            pixelArrayb[x*dib.width+y]=pixelArrayb[x*dib.width+dib.height-y];
-            pixelArrayg[x*dib.width+y]=pixelArrayg[x*dib.width+dib.height-y];
-            pixelArrayr[x*dib.width+y]=pixelArrayr[x*dib.width+dib.height-y];
-            pixelArrayb[x*dib.width+dib.height-y]=b;
-            pixelArrayg[x*dib.width+dib.height-y]=g;
-            pixelArrayr[x*dib.width+dib.height-y]=r;
-        }
-    }
-
-    fseek(f, bmp.dataoffset-3, SEEK_SET);
-
-    int x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < dib.height) {
-            fwrite(&pixelArrayb[x * dib.width + y], 1, 1, f);
-            fwrite(&pixelArrayg[x * dib.width + y], 1, 1, f);
-            fwrite(&pixelArrayr[x * dib.width + y], 1, 1, f);
-            y++;
-            fseek(f, 0, SEEK_CUR);
-
-        }
-
-        fseek(f, 0, SEEK_CUR);
-        x++;
-    }
-    */
-    /*struct PIXEL pixel3[dib.width][dib.height];
-    int x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < dib.height) {
-            fread(&pixel3[x][y].b, 1, 1, f);
-            fread(&pixel3[x][y].g, 1, 1, f);
-            fread(&pixel3[x][y].r, 1, 1, f);
-            y++;
-        }
-        x++;
-    }
-    for ( x = 0; x < dib.width; x++) {
-        for (int y = 0; y < dib.height/2; y++) {
-            unsigned char b=pixel3[x][y].b;
-            unsigned char g=pixel3[x][y].g;
-            unsigned char r=pixel3[x][y].r;
-            pixel3[x][y].b=pixel3[x][dib.height-y].b;
-            pixel3[x][y].g=pixel3[x][dib.height-y].g;
-            pixel3[x][y].r=pixel3[x][dib.height-y].r;
-            pixel3[x][dib.height-y].b=b;
-            pixel3[x][dib.height-y].g=g;
-            pixel3[x][dib.height-y].r=r;
-        }
-    }
-
-
-    fseek(f,-dib.width*dib.height*3-3,SEEK_CUR);
-
-    x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < dib.height) {
-            fwrite(&pixel3[x][y].b, 1, 1, f);
-            fwrite(&pixel3[x][y].g, 1, 1, f);
-            fwrite(&pixel3[x][y].r, 1, 1, f);
-            y++;
-        }
-        x++;
-    }
-     */
-    /*
-    int x = 0;
-    while (x < dib.width) {
-        int y = 0;
-        while (y < (int)dib.height/2) {
-            if(y==(int)dib.height/2 &&x==dib.width){
-                break;
-            }
-
-            fread(&pixel.b, 1, 1, f);
-            fread(&pixel.g, 1, 1, f);
-            fread(&pixel.r, 1, 1, f);
-
-            fseek(f, dib.height*3-((y+1)*3)-2-y*3, SEEK_CUR);
-
-            fread(&pixel2.b, 1, 1, f);
-            fread(&pixel2.g, 1, 1, f);
-            fread(&pixel2.r, 1, 1, f);
-
-            fseek(f, -(dib.height*3-((y+1)*3)), SEEK_CUR);
-
-            unsigned int b=pixel.b,g=pixel.g,r=pixel.r;
-
-            pixel.b=pixel2.b;
-            pixel.g=pixel2.g;
-            pixel.r=pixel2.r;
-            pixel2.b=(char)b;
-            pixel2.g=(char)g;
-            pixel2.r=(char)r;
-
-            fwrite(&pixel.b, 1, 1, f);
-            fwrite(&pixel.g, 1, 1, f);
-            fwrite(&pixel.r, 1, 1, f);
-            fseek(f, dib.height*3-((y+1)*3)-2-y*3, SEEK_CUR);
-            fwrite(&pixel2.b, 1, 1, f);
-            fwrite(&pixel2.g, 1, 1, f);
-            fwrite(&pixel2.r, 1, 1, f);
-            fseek(f, -(dib.height*3-((y+1)*3)), SEEK_CUR);
-
-            //fseek(f, 0, SEEK_CUR);
-
-            y++;
-        }
-       // fseek(f,0,SEEK_CUR);
-
-        x++;
-    }
-*/
-
     printf("reddy");
     fclose(f);
     fclose(f1);
 
     return 0;
+}
+
+unsigned char reverse(unsigned char b) {
+    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+    return b;
+}
+
+
+void flip_1bits1(struct BMP *bmp, struct DIB *dib, FILE *f) {
+    fseek(f, (*bmp).dataoffset, SEEK_SET);
+
+    unsigned int pixelSize = (dib->width) * (dib->height);
+    unsigned char pixelArraycolor[dib->width][(int) ceil(dib->height / 8.0)];
+    unsigned char pixelArraycolor2[pixelSize];
+    unsigned char pixelArraycolor3[pixelSize];
+    unsigned char pixelArraycolor4[dib->width][(int) ceil(dib->height / 8.0)];
+    unsigned char pading = (4 - ((int) ceil((dib->height / 8.0))) % 4) % 4;
+    unsigned char pading2 = (8 - ((dib->height) % 8)) % 8;
+    printf("%d", pading2);
+    for (int i = 0; i < dib->width; i++) {
+        unsigned char d = 0;
+        for (int j = 0; j < (int) ceil(dib->height / 8.0); j++) {
+            fread(&d, 1, 1, f);
+            pixelArraycolor[i][j] = d;
+
+        }
+        fseek(f, pading, SEEK_CUR);
+
+    }
+
+    int count = 0;
+    for (int i = 0; i < dib->width; i++) {
+        for (int j = 0; j < (int) ceil(dib->height / 8.0); j++) {
+            unsigned char c = pixelArraycolor[i][j];
+            for (int k = 7; k >= 0; k--) {
+                pixelArraycolor2[count] = (c >> k) & 1;
+                count++;
+            }
+        }
+        count -= pading2;
+
+    }
+     count = 0;
+
+    for (int i = 0; i < dib->width; i++) {
+        for (int j = 0; j < (int) ceil(dib->height / 8.0); j++) {
+            unsigned char c = 0;
+            for (int k = 0; k < 8; k++) {
+                c = c + pixelArraycolor2[count];
+                c = c << 1;
+                count++;
+            }
+            pixelArraycolor[i][j] = c;
+        }
+        count -= pading2;
+
+    }
+    for (int i = 0; i < dib->width; i++) {
+        count = dib->height - 1;
+        for (int j = 0; j < dib->height; j++) {
+            pixelArraycolor3[i * dib->width + j] = pixelArraycolor2[i * dib->width + count];
+            count--;
+        }
+
+    }
+    count = 0;
+    for (int i = 0; i < dib->width; i++) {
+        for (int j = 0; j < (int) ceil(dib->height / 8.0); j++) {
+            unsigned char c = 0;
+            for (int k = 0; k < 8; k++) {
+                c = c + pixelArraycolor3[count];
+                c = c << 1;
+                count++;
+            }
+            pixelArraycolor4[i][j] = c;
+        }
+        count -= pading2;
+
+    }
+    // count = 0;
+    fseek(f, (*bmp).dataoffset, SEEK_SET);
+    for (int i = 0; i < dib->width; i++) {
+        for (int j = 0; j < (int) (ceil(dib->height / 8.0)); j++) {
+            fwrite(&pixelArraycolor[i][j], 1, 1, f);
+        }
+        unsigned char d = 0x00;
+        fwrite(&d, 1, pading, f);
+
+    }
+}
+
+void rotate_1bits1(struct BMP *bmp, struct DIB *dib, FILE *f) {
+    fseek(f, (*bmp).dataoffset, SEEK_SET);
+
+    int pixelSize = (*dib).height * (*dib).width;
+
+
+    char pixelArraycolor[pixelSize];
+    char pixelArraycolor2[pixelSize];
+
+    char pixelArraycolor3[pixelSize];
+    //reshenie na rotate;
+    int count = 0;
+    for (int i = 0; i < pixelSize - 1; i += 7) {
+        // color
+        fread(&pixelArraycolor[i], 1, 1, f);
+        unsigned char c = pixelArraycolor[i];
+        unsigned char c1 = c >> 1;
+        c = c << 1;
+        unsigned char c2 = c >> 1;
+        c = c << 1;
+        unsigned char c3 = c >> 1;
+        c = c << 1;
+        unsigned char c4 = c >> 1;
+        c = c << 1;
+        unsigned char c5 = c >> 1;
+        c = c << 1;
+        unsigned char c6 = c >> 1;
+        c = c << 1;
+        unsigned char c7 = c >> 1;
+        c = c << 1;
+        unsigned char c8 = c >> 1;
+
+
+        pixelArraycolor2[count] = c1;
+        pixelArraycolor2[count + 1] = c2;
+        pixelArraycolor2[count + 2] = c3;
+        pixelArraycolor2[count + 3] = c4;
+        pixelArraycolor2[count + 4] = c5;
+        pixelArraycolor2[count + 5] = c6;
+        pixelArraycolor2[count + 6] = c7;
+        pixelArraycolor2[count + 7] = c8;
+        pixelArraycolor3[count] = c1;
+        pixelArraycolor3[count + 1] = c2;
+        pixelArraycolor3[count + 2] = c3;
+        pixelArraycolor3[count + 3] = c4;
+        pixelArraycolor3[count + 4] = c5;
+        pixelArraycolor3[count + 5] = c6;
+        pixelArraycolor3[count + 6] = c7;
+        pixelArraycolor3[count + 7] = c8;
+        count += 8;
+
+
+    }
+    int x1 = (*dib).width - 1;
+    for (int i = 0; i < (*dib).width; i++) {
+        for (int y = 0; y < (*dib).height; y += 1) {
+            pixelArraycolor2[y * (*dib).width + x1] = pixelArraycolor3[i * (*dib).width + y];
+        }
+        x1 -= 1;
+    }
+    fseek(f, (*bmp).dataoffset, SEEK_SET);
+    count = 0;
+    for (int i = 0; i < pixelSize - 1; i += 7) {
+        unsigned char result = 0;
+        result += pixelArraycolor2[count];
+        result = result << 1;
+        result += pixelArraycolor2[count + 1];
+        result = result << 1;
+        result += pixelArraycolor2[count + 2];
+        result = result << 1;
+        result += pixelArraycolor2[count + 3];
+        result = result << 1;
+        result += pixelArraycolor2[count + 4];
+        result = result << 1;
+        result += pixelArraycolor2[count + 5];
+        result = result << 1;
+        result += pixelArraycolor2[count + 6];
+        result = result << 1;
+        result += pixelArraycolor2[count + 7];
+        fwrite(&result, 1, 1, f);
+        fseek(f, 0, SEEK_CUR);
+
+        count += 8;
+    }
+//        int x = 0;
+//    while (x < (*dib).width) {
+//        int y = 0;
+//        while (y < (*dib).height) {
+//            unsigned char result = 0;
+//            result += pixelArraycolor2[x * (*dib).width + y];
+//            result = result << 4;
+//            result += pixelArraycolor2[x * (*dib).width + y + 1];
+//            fwrite(&result, 1, 1, f);
+//            y += 2;
+//            fseek(f, 0, SEEK_CUR);
+//
+//        }
+//
+//        fseek(f, 0, SEEK_CUR);
+//        x++;
+//    }
+
 }
